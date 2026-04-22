@@ -436,7 +436,7 @@
 
   const UNIT_DEFS = {
     sword:  { cost: 40,  hp: 35,  dmg: 8,  speed: 65, range: 28,    cooldown: 0.55, body: '#3b82f6', icon: '⚔️', face: '🐵', radius: 13, ranged: false },
-    archer: { cost: 80,  hp: 22,  dmg: 6,  speed: 50, range: () => LW() / 2, cooldown: 1.0,  body: '#16a34a', icon: '🏹', face: '🐵', radius: 13, ranged: true,  projColor: '#e5e7eb', projSpeed: 720 },
+    archer: { cost: 80,  hp: 22,  dmg: 3,  speed: 50, range: () => LW() / 4, cooldown: 1.0,  body: '#16a34a', icon: '🏹', face: '🐵', radius: 13, ranged: true,  projColor: '#e5e7eb', projSpeed: 720 },
     fire:   { cost: 150, hp: 28,  dmg: 14, speed: 38, range: 230,   cooldown: 1.55, body: '#ea580c', icon: '🔥', face: '🐵', radius: 13, ranged: true,  projColor: '#f97316', projSpeed: 440, aoe: 60 },
     ninja:  { cost: 90,  hp: 25,  dmg: 7,  speed: 95, range: 26,    cooldown: 0.28, body: '#1e1b4b', icon: '🗡️', face: '🥷', radius: 12, ranged: false },
     tank:   { cost: 120, hp: 140, dmg: 5,  speed: 36, range: 30,    cooldown: 0.85, body: '#6b7280', icon: '🛡️', face: '🐵', radius: 17, ranged: false },
@@ -790,6 +790,9 @@
   function LH() { return canvas.clientHeight; }
   function GROUND_Y() { return LH() * GROUND_FRAC; }
   function CASTLE_X(idx) { return idx === 0 ? 90 : LW() - 90; }
+  // Forward-facing wall of the castle (where attackers should stop
+  // and where defenders should spawn). Castle body is 86px wide (±43 from CASTLE_X).
+  function CASTLE_FACE_X(idx) { return idx === 0 ? CASTLE_X(0) + 43 : CASTLE_X(1) - 43; }
   function CASTLE_HIT_Y() { return GROUND_Y() - 55; }
 
   function resize() {
@@ -838,7 +841,10 @@
   function spawnUnit(ownerIdx, type) {
     const def = UNIT_DEFS[type];
     const dir = ownerIdx === 0 ? 1 : -1;
-    const baseX = CASTLE_X(ownerIdx) + dir * 55 + (Math.random() - 0.5) * 12;
+    // Spawn just outside the castle's front wall so defenders always emerge
+    // on the correct side of any attackers that have closed in.
+    const faceX = CASTLE_FACE_X(ownerIdx);
+    const baseX = faceX + dir * 8 + (Math.random() - 0.5) * 10;
     const y = GROUND_Y() + (Math.random() - 0.5) * 22;
     state.units.push({
       id: state.nextId++,
@@ -919,7 +925,6 @@
 
       const dir = u.owner === 0 ? 1 : -1;
       const enemyOwner = 1 - u.owner;
-      const cx = CASTLE_X(enemyOwner);
 
       let target = null;
       let targetDist = Infinity;
@@ -929,7 +934,11 @@
         if (d < targetDist) { targetDist = d; target = other; }
       }
 
-      const castleDist = Math.abs(cx - u.x);
+      // Distance is measured to the castle's front wall, not its center —
+      // otherwise melee attackers would end up "inside" the castle and
+      // defenders spawning outside would be behind them.
+      const castleFaceX = CASTLE_FACE_X(enemyOwner);
+      const castleDist = Math.abs(castleFaceX - u.x);
       const range = typeof def.range === 'function' ? def.range() : def.range;
 
       if (target && targetDist <= range) {
