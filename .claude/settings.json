@@ -1,0 +1,17 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cd /Users/mikesego/Code/stuffy_war_test && git add -A && { git diff --cached --quiet || { git commit -m 'Auto: session changes' -q && git push -q && echo '🚀 Auto-pushed to Vercel'; }; }",
+            "timeout": 30,
+            "statusMessage": "Pushing changes to Vercel..."
+          }
+        ]
+      }
+    ]
+  }
+}
