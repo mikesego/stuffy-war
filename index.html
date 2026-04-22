@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Stuffy War</title>
+<title>Stuffy Wars Deluxe</title>
 <style>
   :root {
     --bg: #0f172a;
@@ -228,7 +228,10 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(8, 13, 28, 0.94);
+    /* Battlefield background + dark gradient tint so the card stays readable */
+    background:
+      linear-gradient(180deg, rgba(8, 13, 28, 0.55) 0%, rgba(8, 13, 28, 0.85) 100%),
+      url("battlefield.jpg") center/cover no-repeat;
     z-index: 20;
     padding: 20px;
   }
@@ -236,18 +239,24 @@
   .start-card {
     max-width: 820px;
     width: 100%;
-    background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0.92) 0%, rgba(15, 23, 42, 0.94) 100%);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border: 2px solid var(--border);
     border-radius: 16px;
     padding: 28px 36px;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.6);
+    box-shadow: 0 30px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.05) inset;
   }
   .start-title {
-    font-size: 38px;
-    font-weight: 800;
+    font-size: 44px;
+    font-weight: 900;
     margin: 0 0 6px;
     text-align: center;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
+    text-shadow:
+      0 2px 0 rgba(0, 0, 0, 0.5),
+      0 6px 18px rgba(0, 0, 0, 0.6),
+      0 0 28px rgba(251, 146, 60, 0.35);
   }
   .start-title .s1 { color: var(--p1); }
   .start-title .s2 { color: var(--p2); }
@@ -411,7 +420,7 @@
   </div>
   <div id="start-screen">
     <div class="start-card">
-      <h1 class="start-title"><span class="s1">🏰 Stuffy</span> <span class="s2">War 🏰</span></h1>
+      <h1 class="start-title"><span class="s1">🏰 Stuffy Wars</span> <span class="s2">Deluxe 🏰</span></h1>
       <p class="start-sub">Two-player castle battle · same keyboard · first to 0 HP loses</p>
       <div class="start-rules">
         <strong>How it works</strong>
