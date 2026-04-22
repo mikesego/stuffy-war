@@ -97,6 +97,38 @@
     font-variant-numeric: tabular-nums;
   }
   .card .count:empty { display: none; }
+  /* PvZ-style cooldown: darkness covers the top of the card, recedes downward
+     so the colored / "ready" portion grows upward from the bottom. */
+  .card .cooldown-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0%;
+    background: rgba(15, 23, 42, 0.82);
+    backdrop-filter: grayscale(0.8);
+    -webkit-backdrop-filter: grayscale(0.8);
+    pointer-events: none;
+    border-radius: 5px 5px 0 0;
+    z-index: 3;
+    display: none;
+    overflow: hidden;
+  }
+  .card .cooldown-overlay::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gold);
+    box-shadow: 0 0 6px rgba(251, 191, 36, 0.7);
+  }
+  .card.cooling .cooldown-overlay { display: block; }
+  .card.cooling .key,
+  .card.cooling .icon,
+  .card.cooling .name,
+  .card.cooling .cost { opacity: 0.5; }
   .card.affordable { border-color: var(--green); box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.12); }
   .card.unaffordable { opacity: 0.5; }
   .card.owned { border-color: var(--gold); opacity: 0.7; }
@@ -339,11 +371,11 @@
         <span class="dim">(+<span id="p1-income">5</span>/s)</span>
       </div>
       <div class="cards">
-        <div class="card" data-card="p1-sword"><span class="key">Q</span><span class="icon">⚔️</span><span class="name">Sword</span><span class="cost">40g</span></div>
-        <div class="card" data-card="p1-archer"><span class="key">W</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">80g</span></div>
-        <div class="card" data-card="p1-fire"><span class="key">E</span><span class="icon">🔥</span><span class="name">Fire</span><span class="cost">150g</span></div>
-        <div class="card" data-card="p1-ninja"><span class="key">R</span><span class="icon">🗡️</span><span class="name">Ninja</span><span class="cost">90g</span></div>
-        <div class="card" data-card="p1-tank"><span class="key">T</span><span class="icon">🛡️</span><span class="name">Tank</span><span class="cost">120g</span></div>
+        <div class="card unit-card" data-card="p1-sword" data-type="sword" data-player="0"><span class="cooldown-overlay"></span><span class="key">Q</span><span class="icon">⚔️</span><span class="name">Sword</span><span class="cost">40g</span></div>
+        <div class="card unit-card" data-card="p1-archer" data-type="archer" data-player="0"><span class="cooldown-overlay"></span><span class="key">W</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">80g</span></div>
+        <div class="card unit-card" data-card="p1-fire" data-type="fire" data-player="0"><span class="cooldown-overlay"></span><span class="key">E</span><span class="icon">🔥</span><span class="name">Fire</span><span class="cost">150g</span></div>
+        <div class="card unit-card" data-card="p1-ninja" data-type="ninja" data-player="0"><span class="cooldown-overlay"></span><span class="key">R</span><span class="icon">🗡️</span><span class="name">Ninja</span><span class="cost">90g</span></div>
+        <div class="card unit-card" data-card="p1-tank" data-type="tank" data-player="0"><span class="cooldown-overlay"></span><span class="key">T</span><span class="icon">🛡️</span><span class="name">Tank</span><span class="cost">120g</span></div>
         <div class="card" data-card="p1-farmI"><span class="key">1</span><span class="icon">🍌</span><span class="name">Farm I +3/s</span><span class="cost">100g</span></div>
         <div class="card" data-card="p1-farmII"><span class="key">2</span><span class="icon">🍌</span><span class="name">Farm II +6/s</span><span class="cost">250g</span></div>
         <div class="card" data-card="p1-farmIII"><span class="key">3</span><span class="icon">🍌</span><span class="name">Farm III +12/s</span><span class="cost">600g</span><span class="count" id="p1-farmIII-count"></span></div>
@@ -357,11 +389,11 @@
         <span class="title-p2">Player 2 🏰</span>
       </div>
       <div class="cards">
-        <div class="card" data-card="p2-sword"><span class="key">U</span><span class="icon">⚔️</span><span class="name">Sword</span><span class="cost">40g</span></div>
-        <div class="card" data-card="p2-archer"><span class="key">I</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">80g</span></div>
-        <div class="card" data-card="p2-fire"><span class="key">O</span><span class="icon">🔥</span><span class="name">Fire</span><span class="cost">150g</span></div>
-        <div class="card" data-card="p2-ninja"><span class="key">P</span><span class="icon">🗡️</span><span class="name">Ninja</span><span class="cost">90g</span></div>
-        <div class="card" data-card="p2-tank"><span class="key">[</span><span class="icon">🛡️</span><span class="name">Tank</span><span class="cost">120g</span></div>
+        <div class="card unit-card" data-card="p2-sword" data-type="sword" data-player="1"><span class="cooldown-overlay"></span><span class="key">U</span><span class="icon">⚔️</span><span class="name">Sword</span><span class="cost">40g</span></div>
+        <div class="card unit-card" data-card="p2-archer" data-type="archer" data-player="1"><span class="cooldown-overlay"></span><span class="key">I</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">80g</span></div>
+        <div class="card unit-card" data-card="p2-fire" data-type="fire" data-player="1"><span class="cooldown-overlay"></span><span class="key">O</span><span class="icon">🔥</span><span class="name">Fire</span><span class="cost">150g</span></div>
+        <div class="card unit-card" data-card="p2-ninja" data-type="ninja" data-player="1"><span class="cooldown-overlay"></span><span class="key">P</span><span class="icon">🗡️</span><span class="name">Ninja</span><span class="cost">90g</span></div>
+        <div class="card unit-card" data-card="p2-tank" data-type="tank" data-player="1"><span class="cooldown-overlay"></span><span class="key">[</span><span class="icon">🛡️</span><span class="name">Tank</span><span class="cost">120g</span></div>
         <div class="card" data-card="p2-farmI"><span class="key">8</span><span class="icon">🍌</span><span class="name">Farm I +3/s</span><span class="cost">100g</span></div>
         <div class="card" data-card="p2-farmII"><span class="key">9</span><span class="icon">🍌</span><span class="name">Farm II +6/s</span><span class="cost">250g</span></div>
         <div class="card" data-card="p2-farmIII"><span class="key">0</span><span class="icon">🍌</span><span class="name">Farm III +12/s</span><span class="cost">600g</span><span class="count" id="p2-farmIII-count"></span></div>
@@ -435,11 +467,11 @@
   const ctx = canvas.getContext('2d');
 
   const UNIT_DEFS = {
-    sword:  { cost: 40,  hp: 35,  dmg: 8,  speed: 65, range: 28,    cooldown: 0.55, body: '#3b82f6', icon: '⚔️', face: '🐵', radius: 13, ranged: false },
-    archer: { cost: 80,  hp: 22,  dmg: 3,  speed: 50, range: () => LW() / 4, cooldown: 1.0,  body: '#16a34a', icon: '🏹', face: '🐵', radius: 13, ranged: true,  projColor: '#e5e7eb', projSpeed: 720 },
-    fire:   { cost: 150, hp: 28,  dmg: 14, speed: 38, range: 230,   cooldown: 1.55, body: '#ea580c', icon: '🔥', face: '🐵', radius: 13, ranged: true,  projColor: '#f97316', projSpeed: 440, aoe: 60 },
-    ninja:  { cost: 90,  hp: 25,  dmg: 7,  speed: 95, range: 26,    cooldown: 0.28, body: '#1e1b4b', icon: '🗡️', face: '🥷', radius: 12, ranged: false },
-    tank:   { cost: 120, hp: 140, dmg: 5,  speed: 36, range: 30,    cooldown: 0.85, body: '#6b7280', icon: '🛡️', face: '🐵', radius: 17, ranged: false },
+    sword:  { cost: 40,  hp: 35,  dmg: 8,  speed: 65, range: 28,    cooldown: 0.55, buyCooldown: 1, body: '#3b82f6', icon: '⚔️', face: '🐵', radius: 13, ranged: false },
+    archer: { cost: 80,  hp: 22,  dmg: 3,  speed: 50, range: () => LW() / 4, cooldown: 1.0,  buyCooldown: 5, body: '#16a34a', icon: '🏹', face: '🐵', radius: 13, ranged: true,  projColor: '#e5e7eb', projSpeed: 720 },
+    fire:   { cost: 150, hp: 28,  dmg: 14, speed: 38, range: 230,   cooldown: 1.55, buyCooldown: 3, body: '#ea580c', icon: '🔥', face: '🐵', radius: 13, ranged: true,  projColor: '#f97316', projSpeed: 440, aoe: 60 },
+    ninja:  { cost: 90,  hp: 25,  dmg: 7,  speed: 95, range: 26,    cooldown: 0.28, buyCooldown: 2, body: '#1e1b4b', icon: '🗡️', face: '🥷', radius: 12, ranged: false },
+    tank:   { cost: 120, hp: 140, dmg: 5,  speed: 36, range: 30,    cooldown: 0.85, buyCooldown: 2, body: '#6b7280', icon: '🛡️', face: '🐵', radius: 17, ranged: false },
   };
 
   const FARM_DEFS = {
@@ -842,8 +874,8 @@
   function initState() {
     state = {
       players: [
-        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 } },
-        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 } },
+        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 }, cooldowns: {} },
+        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 }, cooldowns: {} },
       ],
       units: [],
       projectiles: [],
@@ -890,7 +922,13 @@
         sfx.fail();
         return;
       }
+      if ((player.cooldowns[action.type] || 0) > 0) {
+        showError(action.p, action.card, 'Not ready yet!');
+        sfx.fail();
+        return;
+      }
       player.gold -= def.cost;
+      player.cooldowns[action.type] = def.buyCooldown;
       spawnUnit(action.p, action.type);
       flashCard(action.card, 'flash');
       sfx.buyUnit(action.type);
@@ -993,7 +1031,15 @@
     if (!state.started) return;
     if (state.winner !== null) return;
 
-    for (const p of state.players) p.gold += p.income * dt;
+    for (const p of state.players) {
+      p.gold += p.income * dt;
+      // Tick down per-unit buy cooldowns
+      for (const type in p.cooldowns) {
+        if (p.cooldowns[type] > 0) {
+          p.cooldowns[type] = Math.max(0, p.cooldowns[type] - dt);
+        }
+      }
+    }
 
     for (const u of state.units) {
       if (u.hp <= 0) continue;
@@ -1432,10 +1478,26 @@
       for (const type of Object.keys(UNIT_DEFS)) {
         const card = document.querySelector(`[data-card="${prefix}-${type}"]`);
         if (!card) continue;
-        const cost = UNIT_DEFS[type].cost;
-        const afford = Math.floor(p.gold) >= cost;
-        card.classList.toggle('affordable', afford);
-        card.classList.toggle('unaffordable', !afford);
+        const def = UNIT_DEFS[type];
+        const afford = Math.floor(p.gold) >= def.cost;
+        const cdLeft = p.cooldowns[type] || 0;
+        const cooling = cdLeft > 0;
+        // "Ready to buy" = afford AND not cooling
+        card.classList.toggle('affordable', afford && !cooling);
+        card.classList.toggle('unaffordable', !afford && !cooling);
+        card.classList.toggle('cooling', cooling);
+        // Drive the PvZ-style overlay: height = remaining cooldown ratio
+        // (100% just after purchase → 0% when ready). The top of the card
+        // stays covered; the colored bottom grows upward over time.
+        const overlay = card.querySelector('.cooldown-overlay');
+        if (overlay) {
+          if (cooling) {
+            const ratio = Math.min(1, cdLeft / def.buyCooldown);
+            overlay.style.height = (ratio * 100) + '%';
+          } else {
+            overlay.style.height = '0%';
+          }
+        }
       }
       for (const tier of ['I', 'II', 'III']) {
         const card = document.querySelector(`[data-card="${prefix}-farm${tier}"]`);
