@@ -424,7 +424,7 @@
             🛡️ <strong>Tank</strong> (huge HP, soaks damage for units behind it) ·
             🔥 <strong>Fire</strong> (splash damage specialty).
           </li>
-          <li>Buy <strong>🍌 Banana Farms</strong> to boost income. Farms I and II are one-time upgrades; <strong>Farm III is repeatable</strong> — stack as many as you want for runaway gold.</li>
+          <li>Buy <strong>🍌 Banana Farms</strong> to boost income. Farms I and II are one-time upgrades; <strong>Farm III is stackable up to 3 times</strong> for a late-game economy boost.</li>
           <li>Cards up top glow <span style="color: var(--green); font-weight:700">green</span> when you can afford them. If you press a key without enough gold you'll see a <span style="color:#f87171; font-weight:700">"Not enough money!"</span> warning.</li>
           <li>Toggle sound with the 🔊 button (bottom-right) or press <span style="font-family: ui-monospace, monospace; background: var(--border); padding: 1px 6px; border-radius: 3px;">M</span>.</li>
         </ul>
@@ -439,7 +439,7 @@
           <div class="control-row"><span class="k">T</span><span>🛡️ Tank</span><span class="desc">120g · tanky</span></div>
           <div class="control-row"><span class="k">1</span><span>🍌 Farm I</span><span class="desc">+3/s · 100g</span></div>
           <div class="control-row"><span class="k">2</span><span>🍌 Farm II</span><span class="desc">+6/s · 250g</span></div>
-          <div class="control-row"><span class="k">3</span><span>🍌 Farm III</span><span class="desc">+12/s · 600g · stackable</span></div>
+          <div class="control-row"><span class="k">3</span><span>🍌 Farm III</span><span class="desc">+12/s · 600g · ×3 max</span></div>
         </div>
         <div class="control-box p2">
           <h3>Player 2 (right side)</h3>
@@ -450,7 +450,7 @@
           <div class="control-row"><span class="k">[</span><span>🛡️ Tank</span><span class="desc">120g · tanky</span></div>
           <div class="control-row"><span class="k">8</span><span>🍌 Farm I</span><span class="desc">+3/s · 100g</span></div>
           <div class="control-row"><span class="k">9</span><span>🍌 Farm II</span><span class="desc">+6/s · 250g</span></div>
-          <div class="control-row"><span class="k">0</span><span>🍌 Farm III</span><span class="desc">+12/s · 600g · stackable</span></div>
+          <div class="control-row"><span class="k">0</span><span>🍌 Farm III</span><span class="desc">+12/s · 600g · ×3 max</span></div>
         </div>
       </div>
       <div class="start-prompt">
@@ -479,6 +479,7 @@
     II:  { cost: 250, bonus: 6 },
     III: { cost: 600, bonus: 12 },
   };
+  const FARM_III_MAX = 3;
 
   const CASTLE_HP_START = 1000;
   const BASE_INCOME = 5;
@@ -937,6 +938,11 @@
       const repeatable = action.tier === 'III';
       if (!repeatable && player.farms[action.tier]) {
         showError(action.p, action.card, 'Farm already owned!');
+        sfx.fail();
+        return;
+      }
+      if (repeatable && (player.farms.III || 0) >= FARM_III_MAX) {
+        showError(action.p, action.card, 'Max 3 farms!');
         sfx.fail();
         return;
       }
@@ -1504,14 +1510,15 @@
         const cost = FARM_DEFS[tier].cost;
         const repeatable = tier === 'III';
         const count = repeatable ? (p.farms.III || 0) : 0;
-        const owned = !repeatable && !!p.farms[tier];
+        const maxed = repeatable && count >= FARM_III_MAX;
+        const owned = maxed || (!repeatable && !!p.farms[tier]);
         const afford = !owned && Math.floor(p.gold) >= cost;
         card.classList.toggle('owned', owned);
         card.classList.toggle('affordable', afford);
         card.classList.toggle('unaffordable', !owned && !afford);
         if (repeatable) {
           const badge = document.getElementById(`${prefix}-farmIII-count`);
-          if (badge) badge.textContent = count > 0 ? `×${count}` : '';
+          if (badge) badge.textContent = count > 0 ? `×${count}/${FARM_III_MAX}` : '';
         }
       }
     }
