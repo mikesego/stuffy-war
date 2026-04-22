@@ -1,0 +1,16 @@
+# Vercel
+.vercel
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/
+
+# Dependencies (future-proofing)
+node_modules/
