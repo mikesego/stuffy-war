@@ -461,7 +461,8 @@
       <h1 class="start-title"><span class="s1">🏰 Stuffy Wars</span> <span class="s2">Deluxe 🏰</span></h1>
       <p class="start-sub">Castle battle · same keyboard · first to 0 HP loses</p>
       <div class="start-mode-select">
-        <button class="mode-btn" data-mode="onePlayer">👤 1 Player</button>
+        <button class="mode-btn" data-mode="onePlayer" data-difficulty="easy">👤 1P · Easy</button>
+        <button class="mode-btn" data-mode="onePlayer" data-difficulty="hard">💀 1P · Hard</button>
         <button class="mode-btn selected" data-mode="twoPlayer">👥 2 Players</button>
       </div>
       <div class="start-rules">
@@ -536,51 +537,54 @@
   // Structure is shared across difficulties; only the numbers change.
   // Medium / Hard are scaffolded for later tuning.
   const AI_DIFFICULTIES = {
+    // EASY: slow, distractible, economy-capped at Farm I (8 g/s vs your
+    // max 50 g/s). Uses the simple weighted-random picker.
     easy: {
-      tickInterval: 1.8,      // seconds between AI decisions
-      skipChance: 0.30,       // chance to do nothing on a tick (fake hesitation)
-      threatRadiusFrac: 0.4,  // enemies within 40% of canvas = "under attack"
-      threatUnitsForPanic: 2, // # enemies inside threatRadius that trigger defense mode
-      maxFarmTier: 'II',      // easy AI does NOT buy Farm III
+      algorithm: 'weighted',
+      tickInterval: 2.5,
+      skipChance: 0.55,
+      threatRadiusFrac: 0.3,
+      threatUnitsForPanic: 3,
+      maxFarmTier: 'I',
       maxFarmIIIStacks: 0,
-      farmSaveUrgency: 0.7,   // max probability of skipping a unit buy when near farm cost
+      farmSaveUrgency: 0.4,
       phaseWeights: {
-        early: { sword: 70, archer: 30, ninja: 0,  tank: 0,  fire: 0 },
-        mid:   { sword: 40, archer: 30, ninja: 15, tank: 10, fire: 5 },
-        late:  { sword: 25, archer: 20, ninja: 25, tank: 15, fire: 15 },
+        early: { sword: 80, archer: 20, ninja: 0,  tank: 0, fire: 0 },
+        mid:   { sword: 60, archer: 30, ninja: 10, tank: 0, fire: 0 },
+        late:  { sword: 55, archer: 30, ninja: 15, tank: 0, fire: 0 },
       },
-      defenseWeights:      { sword: 50, archer: 35, ninja: 15, tank: 0,  fire: 0 },
+      defenseWeights:      { sword: 75, archer: 25, ninja: 0, tank: 0, fire: 0 },
     },
-    // Placeholder tunings — not selectable yet.
+    // MEDIUM: reserved for future tuning; uses the weighted picker with a
+    // wider unit pool and Farm II unlocked. Not exposed in the UI yet.
     medium: {
-      tickInterval: 1.2,
-      skipChance: 0.15,
-      threatRadiusFrac: 0.45,
+      algorithm: 'weighted',
+      tickInterval: 1.4,
+      skipChance: 0.2,
+      threatRadiusFrac: 0.4,
       threatUnitsForPanic: 2,
-      maxFarmTier: 'III',
-      maxFarmIIIStacks: 1,
-      farmSaveUrgency: 0.8,
+      maxFarmTier: 'II',
+      maxFarmIIIStacks: 0,
+      farmSaveUrgency: 0.7,
       phaseWeights: {
-        early: { sword: 60, archer: 30, ninja: 10, tank: 0,  fire: 0 },
-        mid:   { sword: 35, archer: 25, ninja: 20, tank: 15, fire: 5 },
-        late:  { sword: 20, archer: 15, ninja: 30, tank: 15, fire: 20 },
+        early: { sword: 65, archer: 30, ninja: 5,  tank: 0,  fire: 0 },
+        mid:   { sword: 40, archer: 25, ninja: 20, tank: 10, fire: 5 },
+        late:  { sword: 30, archer: 20, ninja: 25, tank: 15, fire: 10 },
       },
-      defenseWeights:      { sword: 45, archer: 30, ninja: 20, tank: 5,  fire: 0 },
+      defenseWeights:      { sword: 55, archer: 30, ninja: 10, tank: 5, fire: 0 },
     },
+    // HARD: rule-based decision ladder — inspects enemy composition and
+    // responds with counters, maxes out the economy, and never wastes gold.
     hard: {
-      tickInterval: 0.8,
-      skipChance: 0.05,
+      algorithm: 'rules',
+      tickInterval: 0.5,
+      skipChance: 0,
       threatRadiusFrac: 0.5,
-      threatUnitsForPanic: 2,
       maxFarmTier: 'III',
       maxFarmIIIStacks: 3,
-      farmSaveUrgency: 0.85,
-      phaseWeights: {
-        early: { sword: 50, archer: 30, ninja: 15, tank: 5,  fire: 0 },
-        mid:   { sword: 30, archer: 20, ninja: 25, tank: 15, fire: 10 },
-        late:  { sword: 20, archer: 15, ninja: 30, tank: 15, fire: 20 },
-      },
-      defenseWeights:      { sword: 40, archer: 30, ninja: 20, tank: 10, fire: 0 },
+      farmSaveRatio: 0.7,       // hold gold when at >=70% of next farm cost
+      dpsAdvantageToPress: 20,  // extra DPS margin before switching to offense
+      enemySwordsForFire: 3,    // trigger fireball counter at this many enemy swords
     },
   };
 
@@ -1172,9 +1176,14 @@
     if (state.ai.tickTimer > 0) return;
     state.ai.tickTimer = cfg.tickInterval;
 
-    // Fake hesitation: sometimes just think and do nothing.
     if (Math.random() < cfg.skipChance) return;
 
+    if (cfg.algorithm === 'rules') aiHardDecide(playerIdx, cfg);
+    else aiWeightedDecide(playerIdx, cfg);
+  }
+
+  // EASY/MEDIUM: weighted random pick with a simple phase/defense flip.
+  function aiWeightedDecide(playerIdx, cfg) {
     const player = state.players[playerIdx];
     const aiCastleX = CASTLE_X(playerIdx);
     const threatRadius = LW() * cfg.threatRadiusFrac;
@@ -1183,7 +1192,6 @@
         ? n + 1 : n, 0);
     const underAttack = threatCount >= cfg.threatUnitsForPanic;
 
-    // Decide whether to save for a farm. Skip farming entirely when threatened.
     if (!underAttack) {
       const nextFarm = aiNextFarmTier(player, cfg);
       if (nextFarm) {
@@ -1192,20 +1200,104 @@
         if (gold >= cost) {
           if (aiBuyFarm(playerIdx, nextFarm)) return;
         } else {
-          // The closer to affording, the more likely to save this tick.
           const progress = Math.min(1, gold / cost);
           const saveChance = progress * cfg.farmSaveUrgency;
-          if (Math.random() < saveChance) return; // hold gold
+          if (Math.random() < saveChance) return;
         }
       }
     }
 
-    // Otherwise buy a unit from the appropriate weight pool.
     const phase = player.income <= 8 ? 'early'
       : player.income <= 14 ? 'mid' : 'late';
     const weights = underAttack ? cfg.defenseWeights : cfg.phaseWeights[phase];
     const pick = aiPickUnit(player, weights);
     if (pick) aiBuyUnit(playerIdx, pick);
+  }
+
+  // Helpers for rule-based (HARD) AI.
+  function countByType(units) {
+    const out = { sword: 0, archer: 0, ninja: 0, tank: 0, fire: 0 };
+    for (const u of units) out[u.type] = (out[u.type] || 0) + 1;
+    return out;
+  }
+  function totalDPS(units) {
+    let s = 0;
+    for (const u of units) {
+      const d = UNIT_DEFS[u.type];
+      s += d.dmg / d.cooldown;
+    }
+    return s;
+  }
+
+  // HARD: decision ladder. Higher-priority rules pre-empt lower ones.
+  // 1. Emergency: more enemies near my castle than I have defenders there.
+  // 2. Counter enemy sword-clumps with Fire (AoE).
+  // 3. Counter enemy Tanks with Ninja (high DPS vs. high HP).
+  // 4. Economy: buy next farm tier; save if close.
+  // 5. Pressing advantage: spam Ninja while ahead on DPS.
+  // 6. Default: Sword (best DPS/gold).
+  // 7. Fallback: anything affordable.
+  function aiHardDecide(playerIdx, cfg) {
+    const me = state.players[playerIdx];
+    const gold = Math.floor(me.gold);
+
+    const enemyUnits = state.units.filter(u => u.owner !== playerIdx && u.hp > 0);
+    const myUnits = state.units.filter(u => u.owner === playerIdx && u.hp > 0);
+    const enemyByType = countByType(enemyUnits);
+    const enemyDPS = totalDPS(enemyUnits);
+    const myDPS = totalDPS(myUnits);
+
+    const aiCastleX = CASTLE_X(playerIdx);
+    const threatRadius = LW() * cfg.threatRadiusFrac;
+    const nearEnemies = enemyUnits.filter(u => Math.abs(u.x - aiCastleX) < threatRadius).length;
+    const nearDefenders = myUnits.filter(u => Math.abs(u.x - aiCastleX) < threatRadius).length;
+    const underThreat = nearEnemies >= 1;
+    const needsDefense = nearEnemies > nearDefenders;
+
+    const canBuy = (type) => {
+      const d = UNIT_DEFS[type];
+      return gold >= d.cost && !(me.cooldowns[type] > 0);
+    };
+
+    // 1. Emergency defense — always prioritise a defender if we're outnumbered.
+    if (needsDefense) {
+      for (const t of ['sword', 'ninja', 'archer', 'tank']) {
+        if (canBuy(t)) { aiBuyUnit(playerIdx, t); return; }
+      }
+      return;
+    }
+
+    // 2. Counter sword clumps with Fire.
+    if ((enemyByType.sword || 0) >= cfg.enemySwordsForFire && canBuy('fire')) {
+      aiBuyUnit(playerIdx, 'fire'); return;
+    }
+
+    // 3. Counter enemy tanks with Ninja (fast DPS shreds big HP pools).
+    if ((enemyByType.tank || 0) > 0 && canBuy('ninja')) {
+      aiBuyUnit(playerIdx, 'ninja'); return;
+    }
+
+    // 4. Economy.
+    const nextFarm = aiNextFarmTier(me, cfg);
+    if (nextFarm) {
+      const cost = FARM_DEFS[nextFarm].cost;
+      if (gold >= cost && aiBuyFarm(playerIdx, nextFarm)) return;
+      // Save when close to affording AND safe (no enemies pressuring castle).
+      if (gold >= cost * cfg.farmSaveRatio && !underThreat) return;
+    }
+
+    // 5. Press advantage — if I'm clearly winning the field, build ninjas to end it.
+    if (myDPS > enemyDPS + cfg.dpsAdvantageToPress && canBuy('ninja')) {
+      aiBuyUnit(playerIdx, 'ninja'); return;
+    }
+
+    // 6. Default: sword (best DPS/gold ratio in the game).
+    if (canBuy('sword')) { aiBuyUnit(playerIdx, 'sword'); return; }
+
+    // 7. Fallbacks when sword is on cooldown or too expensive.
+    for (const t of ['ninja', 'archer', 'tank', 'fire']) {
+      if (canBuy(t)) { aiBuyUnit(playerIdx, t); return; }
+    }
   }
 
   function showError(ownerIdx, cardKey, msg) {
@@ -1263,20 +1355,27 @@
   // Mode-select buttons on the title screen
   function refreshModeUI() {
     document.querySelectorAll('.mode-btn').forEach(btn => {
-      btn.classList.toggle('selected', btn.dataset.mode === pendingMode);
+      const modeMatch = btn.dataset.mode === pendingMode;
+      const needsDiff = !!btn.dataset.difficulty;
+      const diffMatch = !needsDiff || btn.dataset.difficulty === pendingDifficulty;
+      btn.classList.toggle('selected', modeMatch && diffMatch);
     });
     const p2Box = document.querySelector('.control-box.p2');
     const p2Heading = p2Box && p2Box.querySelector('h3');
     if (p2Box) p2Box.classList.toggle('ai-mode', pendingMode === 'onePlayer');
     if (p2Heading) {
-      p2Heading.textContent = pendingMode === 'onePlayer'
-        ? '🦝 Raccoons (AI — right side)'
-        : 'Player 2 (right side)';
+      if (pendingMode === 'onePlayer') {
+        const diffLabel = pendingDifficulty.charAt(0).toUpperCase() + pendingDifficulty.slice(1);
+        p2Heading.textContent = `🦝 Raccoons (${diffLabel} AI — right side)`;
+      } else {
+        p2Heading.textContent = 'Player 2 (right side)';
+      }
     }
   }
   document.querySelectorAll('.mode-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       pendingMode = btn.dataset.mode;
+      if (btn.dataset.difficulty) pendingDifficulty = btn.dataset.difficulty;
       refreshModeUI();
     });
   });
