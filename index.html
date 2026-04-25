@@ -391,7 +391,7 @@
       </div>
       <div class="cards">
         <div class="card unit-card" data-card="p1-sword" data-type="sword" data-player="0"><span class="cooldown-overlay"></span><span class="key">Q</span><span class="icon">⚔️</span><span class="name">Sword</span><span class="cost">40g</span></div>
-        <div class="card unit-card" data-card="p1-archer" data-type="archer" data-player="0"><span class="cooldown-overlay"></span><span class="key">W</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">80g</span></div>
+        <div class="card unit-card" data-card="p1-archer" data-type="archer" data-player="0"><span class="cooldown-overlay"></span><span class="key">W</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">60g</span></div>
         <div class="card unit-card" data-card="p1-fire" data-type="fire" data-player="0"><span class="cooldown-overlay"></span><span class="key">E</span><span class="icon">🔥</span><span class="name">Fire</span><span class="cost">150g</span></div>
         <div class="card unit-card" data-card="p1-ninja" data-type="ninja" data-player="0"><span class="cooldown-overlay"></span><span class="key">R</span><span class="icon">🗡️</span><span class="name">Ninja</span><span class="cost">90g</span></div>
         <div class="card unit-card" data-card="p1-tank" data-type="tank" data-player="0"><span class="cooldown-overlay"></span><span class="key">T</span><span class="icon">🛡️</span><span class="name">Tank</span><span class="cost">120g</span></div>
@@ -409,7 +409,7 @@
       </div>
       <div class="cards">
         <div class="card unit-card" data-card="p2-sword" data-type="sword" data-player="1"><span class="cooldown-overlay"></span><span class="key">U</span><span class="icon">⚔️</span><span class="name">Sword</span><span class="cost">40g</span></div>
-        <div class="card unit-card" data-card="p2-archer" data-type="archer" data-player="1"><span class="cooldown-overlay"></span><span class="key">I</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">80g</span></div>
+        <div class="card unit-card" data-card="p2-archer" data-type="archer" data-player="1"><span class="cooldown-overlay"></span><span class="key">I</span><span class="icon">🏹</span><span class="name">Archer</span><span class="cost">60g</span></div>
         <div class="card unit-card" data-card="p2-fire" data-type="fire" data-player="1"><span class="cooldown-overlay"></span><span class="key">O</span><span class="icon">🔥</span><span class="name">Fire</span><span class="cost">150g</span></div>
         <div class="card unit-card" data-card="p2-ninja" data-type="ninja" data-player="1"><span class="cooldown-overlay"></span><span class="key">P</span><span class="icon">🗡️</span><span class="name">Ninja</span><span class="cost">90g</span></div>
         <div class="card unit-card" data-card="p2-tank" data-type="tank" data-player="1"><span class="cooldown-overlay"></span><span class="key">[</span><span class="icon">🛡️</span><span class="name">Tank</span><span class="cost">120g</span></div>
@@ -452,7 +452,7 @@
         <div class="control-box p1">
           <h3>Player 1 (left side)</h3>
           <div class="control-row"><span class="k">Q</span><span>⚔️ Sword</span><span class="desc">40g</span></div>
-          <div class="control-row"><span class="k">W</span><span>🏹 Archer</span><span class="desc">80g · long range</span></div>
+          <div class="control-row"><span class="k">W</span><span>🏹 Archer</span><span class="desc">60g · long range</span></div>
           <div class="control-row"><span class="k">E</span><span>🔥 Fire</span><span class="desc">150g · AoE</span></div>
           <div class="control-row"><span class="k">R</span><span>🗡️ Ninja</span><span class="desc">90g · fast</span></div>
           <div class="control-row"><span class="k">T</span><span>🛡️ Tank</span><span class="desc">120g · tanky</span></div>
@@ -463,7 +463,7 @@
         <div class="control-box p2">
           <h3>Player 2 (right side)</h3>
           <div class="control-row"><span class="k">U</span><span>⚔️ Sword</span><span class="desc">40g</span></div>
-          <div class="control-row"><span class="k">I</span><span>🏹 Archer</span><span class="desc">80g · long range</span></div>
+          <div class="control-row"><span class="k">I</span><span>🏹 Archer</span><span class="desc">60g · long range</span></div>
           <div class="control-row"><span class="k">O</span><span>🔥 Fire</span><span class="desc">150g · AoE</span></div>
           <div class="control-row"><span class="k">P</span><span>🗡️ Ninja</span><span class="desc">90g · fast</span></div>
           <div class="control-row"><span class="k">[</span><span>🛡️ Tank</span><span class="desc">120g · tanky</span></div>
@@ -487,7 +487,7 @@
 
   const UNIT_DEFS = {
     sword:  { cost: 40,  hp: 35,  dmg: 8,  speed: 65, range: 28,    cooldown: 0.55, buyCooldown: 1, body: '#3b82f6', icon: '⚔️', face: '🐵', radius: 13, ranged: false },
-    archer: { cost: 80,  hp: 22,  dmg: 6,  speed: 50, range: () => LW() / 4, cooldown: 1.0,  buyCooldown: 5, body: '#16a34a', icon: '🏹', face: '🐵', radius: 13, ranged: true,  projColor: '#e5e7eb', projSpeed: 720 },
+    archer: { cost: 60,  hp: 22,  dmg: 6,  speed: 50, range: () => LW() / 4, cooldown: 1.0,  buyCooldown: 3, body: '#16a34a', icon: '🏹', face: '🐵', radius: 13, ranged: true,  projColor: '#e5e7eb', projSpeed: 720 },
     fire:   { cost: 150, hp: 28,  dmg: 14, speed: 38, range: 230,   cooldown: 1.55, buyCooldown: 3, body: '#ea580c', icon: '🔥', face: '🐵', radius: 13, ranged: true,  projColor: '#f97316', projSpeed: 440, aoe: 60 },
     ninja:  { cost: 90,  hp: 25,  dmg: 7,  speed: 95, range: 26,    cooldown: 0.28, buyCooldown: 2, body: '#1e1b4b', icon: '🗡️', face: '🥷', radius: 12, ranged: false },
     tank:   { cost: 120, hp: 140, dmg: 5,  speed: 36, range: 30,    cooldown: 0.85, buyCooldown: 2, body: '#6b7280', icon: '🛡️', face: '🐵', radius: 17, ranged: false },
