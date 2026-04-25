@@ -273,9 +273,37 @@
   .start-sub {
     text-align: center;
     color: var(--dim);
-    margin: 0 0 22px;
+    margin: 0 0 14px;
     font-size: 15px;
   }
+  .start-mode-select {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 0 0 20px;
+  }
+  .mode-btn {
+    background: rgba(15, 23, 42, 0.75);
+    color: var(--text);
+    border: 2px solid var(--border);
+    padding: 10px 24px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .mode-btn:hover { border-color: var(--dim); background: rgba(30, 41, 59, 0.9); }
+  .mode-btn.selected {
+    background: var(--p1);
+    border-color: var(--p1);
+    color: white;
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.45);
+  }
+  .control-box.ai-mode h3 { color: #a78bfa !important; }
+  .control-box.ai-mode .control-row { opacity: 0.5; }
+  .control-box.ai-mode .control-row .k { background: #3f3f46; color: var(--dim); }
   .start-rules {
     background: rgba(15, 23, 42, 0.6);
     border: 1px solid var(--border);
@@ -431,7 +459,11 @@
   <div id="start-screen">
     <div class="start-card">
       <h1 class="start-title"><span class="s1">🏰 Stuffy Wars</span> <span class="s2">Deluxe 🏰</span></h1>
-      <p class="start-sub">Two-player castle battle · same keyboard · first to 0 HP loses</p>
+      <p class="start-sub">Castle battle · same keyboard · first to 0 HP loses</p>
+      <div class="start-mode-select">
+        <button class="mode-btn" data-mode="onePlayer">👤 1 Player</button>
+        <button class="mode-btn selected" data-mode="twoPlayer">👥 2 Players</button>
+      </div>
       <div class="start-rules">
         <strong>How it works</strong>
         <ul>
@@ -499,6 +531,58 @@
     III: { cost: 600, bonus: 12 },
   };
   const FARM_III_MAX = 3;
+
+  // --- AI DIFFICULTY CONFIG ---
+  // Structure is shared across difficulties; only the numbers change.
+  // Medium / Hard are scaffolded for later tuning.
+  const AI_DIFFICULTIES = {
+    easy: {
+      tickInterval: 1.8,      // seconds between AI decisions
+      skipChance: 0.30,       // chance to do nothing on a tick (fake hesitation)
+      threatRadiusFrac: 0.4,  // enemies within 40% of canvas = "under attack"
+      threatUnitsForPanic: 2, // # enemies inside threatRadius that trigger defense mode
+      maxFarmTier: 'II',      // easy AI does NOT buy Farm III
+      maxFarmIIIStacks: 0,
+      farmSaveUrgency: 0.7,   // max probability of skipping a unit buy when near farm cost
+      phaseWeights: {
+        early: { sword: 70, archer: 30, ninja: 0,  tank: 0,  fire: 0 },
+        mid:   { sword: 40, archer: 30, ninja: 15, tank: 10, fire: 5 },
+        late:  { sword: 25, archer: 20, ninja: 25, tank: 15, fire: 15 },
+      },
+      defenseWeights:      { sword: 50, archer: 35, ninja: 15, tank: 0,  fire: 0 },
+    },
+    // Placeholder tunings — not selectable yet.
+    medium: {
+      tickInterval: 1.2,
+      skipChance: 0.15,
+      threatRadiusFrac: 0.45,
+      threatUnitsForPanic: 2,
+      maxFarmTier: 'III',
+      maxFarmIIIStacks: 1,
+      farmSaveUrgency: 0.8,
+      phaseWeights: {
+        early: { sword: 60, archer: 30, ninja: 10, tank: 0,  fire: 0 },
+        mid:   { sword: 35, archer: 25, ninja: 20, tank: 15, fire: 5 },
+        late:  { sword: 20, archer: 15, ninja: 30, tank: 15, fire: 20 },
+      },
+      defenseWeights:      { sword: 45, archer: 30, ninja: 20, tank: 5,  fire: 0 },
+    },
+    hard: {
+      tickInterval: 0.8,
+      skipChance: 0.05,
+      threatRadiusFrac: 0.5,
+      threatUnitsForPanic: 2,
+      maxFarmTier: 'III',
+      maxFarmIIIStacks: 3,
+      farmSaveUrgency: 0.85,
+      phaseWeights: {
+        early: { sword: 50, archer: 30, ninja: 15, tank: 5,  fire: 0 },
+        mid:   { sword: 30, archer: 20, ninja: 25, tank: 15, fire: 10 },
+        late:  { sword: 20, archer: 15, ninja: 30, tank: 15, fire: 20 },
+      },
+      defenseWeights:      { sword: 40, archer: 30, ninja: 20, tank: 10, fire: 0 },
+    },
+  };
 
   const CASTLE_HP_START = 1000;
   const BASE_INCOME = 5;
@@ -890,18 +974,25 @@
     if (prev > 0 && u.hp <= 0) sfx.death();
   }
 
+  // Which mode will the next game use. Persisted across restarts so replays
+  // re-use the last mode you picked.
+  let pendingMode = 'twoPlayer'; // 'onePlayer' | 'twoPlayer'
+  let pendingDifficulty = 'easy'; // hook for future medium/hard selection
+
   let state;
   function initState() {
     state = {
       players: [
-        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 }, cooldowns: {} },
-        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 }, cooldowns: {} },
+        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 }, cooldowns: {}, isAI: false },
+        { gold: STARTING_GOLD, income: BASE_INCOME, hp: CASTLE_HP_START, farms: { III: 0 }, cooldowns: {}, isAI: false },
       ],
       units: [],
       projectiles: [],
       effects: [],
       winner: null,
       started: false,
+      mode: 'twoPlayer',
+      ai: null,
       nextId: 1,
     };
   }
@@ -909,6 +1000,15 @@
   function startGame() {
     if (state.started) return;
     state.started = true;
+    state.mode = pendingMode;
+    if (state.mode === 'onePlayer') {
+      state.players[1].isAI = true;
+      const cfg = AI_DIFFICULTIES[pendingDifficulty] || AI_DIFFICULTIES.easy;
+      state.ai = {
+        difficulty: pendingDifficulty,
+        tickTimer: 1.2, // short initial delay so the AI doesn't act instantly
+      };
+    }
     document.getElementById('start-screen').classList.add('hidden');
     sfx.init();
     sfx.start();
@@ -987,6 +1087,9 @@
     const faceX = CASTLE_FACE_X(ownerIdx);
     const baseX = faceX + dir * 8 + (Math.random() - 0.5) * 10;
     const y = GROUND_Y() + (Math.random() - 0.5) * 22;
+    // AI-controlled units get a raccoon face; ninjas always use the ninja emoji.
+    const isAIUnit = state.players[ownerIdx].isAI;
+    const face = (type === 'ninja') ? def.face : (isAIUnit ? '🦝' : def.face);
     state.units.push({
       id: state.nextId++,
       owner: ownerIdx,
@@ -997,7 +1100,112 @@
       maxHp: def.hp,
       attackCooldown: 0,
       bob: Math.random() * Math.PI * 2,
+      face,
     });
+  }
+
+  // --- AI CONTROLLER ---
+  // Silent buy helpers — no toasts, no "fail" sounds. Purely attempt the
+  // purchase and return whether it went through.
+  function aiBuyUnit(playerIdx, type) {
+    const player = state.players[playerIdx];
+    const def = UNIT_DEFS[type];
+    if (Math.floor(player.gold) < def.cost) return false;
+    if ((player.cooldowns[type] || 0) > 0) return false;
+    player.gold -= def.cost;
+    player.cooldowns[type] = def.buyCooldown;
+    spawnUnit(playerIdx, type);
+    flashCard(`p${playerIdx + 1}-${type}`, 'flash');
+    sfx.buyUnit(type);
+    return true;
+  }
+
+  function aiBuyFarm(playerIdx, tier) {
+    const player = state.players[playerIdx];
+    const def = FARM_DEFS[tier];
+    if (Math.floor(player.gold) < def.cost) return false;
+    if (tier !== 'III' && player.farms[tier]) return false;
+    if (tier === 'III' && (player.farms.III || 0) >= FARM_III_MAX) return false;
+    player.gold -= def.cost;
+    if (tier === 'III') player.farms.III = (player.farms.III || 0) + 1;
+    else player.farms[tier] = true;
+    player.income += def.bonus;
+    flashCard(`p${playerIdx + 1}-farm${tier}`, 'flash');
+    sfx.buyFarm();
+    return true;
+  }
+
+  function aiNextFarmTier(player, cfg) {
+    if (!player.farms.I) return 'I';
+    if (!player.farms.II) return 'II';
+    if (cfg.maxFarmTier === 'III' && (player.farms.III || 0) < cfg.maxFarmIIIStacks) return 'III';
+    return null;
+  }
+
+  // Weighted random pick over eligible units (affordable and off-cooldown).
+  function aiPickUnit(player, weights) {
+    const eligible = {};
+    let total = 0;
+    for (const type of Object.keys(weights)) {
+      const def = UNIT_DEFS[type];
+      const w = weights[type];
+      if (w > 0
+        && Math.floor(player.gold) >= def.cost
+        && (player.cooldowns[type] || 0) === 0) {
+        eligible[type] = w;
+        total += w;
+      }
+    }
+    if (total === 0) return null;
+    let r = Math.random() * total;
+    for (const type of Object.keys(eligible)) {
+      r -= eligible[type];
+      if (r <= 0) return type;
+    }
+    return Object.keys(eligible)[0];
+  }
+
+  function aiTick(playerIdx, dt) {
+    if (!state.ai) return;
+    const cfg = AI_DIFFICULTIES[state.ai.difficulty] || AI_DIFFICULTIES.easy;
+    state.ai.tickTimer -= dt;
+    if (state.ai.tickTimer > 0) return;
+    state.ai.tickTimer = cfg.tickInterval;
+
+    // Fake hesitation: sometimes just think and do nothing.
+    if (Math.random() < cfg.skipChance) return;
+
+    const player = state.players[playerIdx];
+    const aiCastleX = CASTLE_X(playerIdx);
+    const threatRadius = LW() * cfg.threatRadiusFrac;
+    const threatCount = state.units.reduce((n, u) =>
+      (u.owner !== playerIdx && u.hp > 0 && Math.abs(u.x - aiCastleX) < threatRadius)
+        ? n + 1 : n, 0);
+    const underAttack = threatCount >= cfg.threatUnitsForPanic;
+
+    // Decide whether to save for a farm. Skip farming entirely when threatened.
+    if (!underAttack) {
+      const nextFarm = aiNextFarmTier(player, cfg);
+      if (nextFarm) {
+        const cost = FARM_DEFS[nextFarm].cost;
+        const gold = Math.floor(player.gold);
+        if (gold >= cost) {
+          if (aiBuyFarm(playerIdx, nextFarm)) return;
+        } else {
+          // The closer to affording, the more likely to save this tick.
+          const progress = Math.min(1, gold / cost);
+          const saveChance = progress * cfg.farmSaveUrgency;
+          if (Math.random() < saveChance) return; // hold gold
+        }
+      }
+    }
+
+    // Otherwise buy a unit from the appropriate weight pool.
+    const phase = player.income <= 8 ? 'early'
+      : player.income <= 14 ? 'mid' : 'late';
+    const weights = underAttack ? cfg.defenseWeights : cfg.phaseWeights[phase];
+    const pick = aiPickUnit(player, weights);
+    if (pick) aiBuyUnit(playerIdx, pick);
   }
 
   function showError(ownerIdx, cardKey, msg) {
@@ -1036,6 +1244,8 @@
     }
     const action = CODE_TO_ACTION[e.code];
     if (!action) return;
+    // In 1-player mode, Player 2 is AI-controlled; ignore its keys.
+    if (state.mode === 'onePlayer' && action.p === 1) return;
     e.preventDefault();
     tryBuy(action);
   });
@@ -1050,11 +1260,39 @@
   }
   document.getElementById('restart-btn').addEventListener('click', restart);
 
+  // Mode-select buttons on the title screen
+  function refreshModeUI() {
+    document.querySelectorAll('.mode-btn').forEach(btn => {
+      btn.classList.toggle('selected', btn.dataset.mode === pendingMode);
+    });
+    const p2Box = document.querySelector('.control-box.p2');
+    const p2Heading = p2Box && p2Box.querySelector('h3');
+    if (p2Box) p2Box.classList.toggle('ai-mode', pendingMode === 'onePlayer');
+    if (p2Heading) {
+      p2Heading.textContent = pendingMode === 'onePlayer'
+        ? '🦝 Raccoons (AI — right side)'
+        : 'Player 2 (right side)';
+    }
+  }
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      pendingMode = btn.dataset.mode;
+      refreshModeUI();
+    });
+  });
+  refreshModeUI();
+
   // --- SIMULATION ---
 
   function update(dt) {
     if (!state.started) return;
     if (state.winner !== null) return;
+
+    // Let the AI take a turn before gameplay updates so any new units spawn
+    // on the right side of this frame's movement calculations.
+    if (state.mode === 'onePlayer' && state.ai) {
+      aiTick(1, dt);
+    }
 
     for (const p of state.players) {
       p.gold += p.income * dt;
@@ -1204,7 +1442,13 @@
     const el = document.getElementById('winner');
     const txt = document.getElementById('winner-text');
     const color = idx === 0 ? 'var(--p1)' : 'var(--p2)';
-    txt.innerHTML = `<span style="color: ${color}">🎉 Player ${idx + 1} Wins! 🎉</span>`;
+    let label;
+    if (state.mode === 'onePlayer') {
+      label = idx === 0 ? '🎉 You Win! 🎉' : '🦝 Raccoons Win! 🦝';
+    } else {
+      label = `🎉 Player ${idx + 1} Wins! 🎉`;
+    }
+    txt.innerHTML = `<span style="color: ${color}">${label}</span>`;
     el.classList.remove('hidden');
     sfx.victory();
   }
@@ -1398,7 +1642,7 @@
     ctx.font = `${Math.round(r * 1.15)}px system-ui`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(def.face || '🐵', u.x, y + 1);
+    ctx.fillText(u.face || def.face || '🐵', u.x, y + 1);
 
     // weapon icon above
     ctx.font = '13px system-ui';
